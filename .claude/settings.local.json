@@ -3,7 +3,8 @@
     "allow": [
       "WebFetch(domain:github.com)",
       "Bash(mkdir:*)",
-      "Bash(powershell.exe -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\David\\\\desktop\\\\claude-rot\\\\scripts\\\\open-brainrot.ps1\" -Action close)"
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\David\\\\desktop\\\\claude-rot\\\\scripts\\\\open-brainrot.ps1\" -Action close)",
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\David\\\\desktop\\\\claude-rot\\\\scripts\\\\open-brainrot.ps1\" -Action open)"
     ]
   }
 }

@@ -41,6 +41,24 @@ if (-not $chromePath) {
 $pidFile = [System.IO.Path]::Combine($env:TEMP, "claude-rot-pids.txt")
 
 function Open-Windows {
+    # Skip if windows are already open
+    if (Test-Path $pidFile) {
+        $savedPids = Get-Content $pidFile
+        foreach ($p in $savedPids) {
+            if ($p) {
+                try {
+                    $proc = Get-Process -Id ([int]$p) -ErrorAction SilentlyContinue
+                    if ($proc) {
+                        # Windows already open, skip
+                        return
+                    }
+                } catch {}
+            }
+        }
+        # PIDs are stale, remove file
+        Remove-Item $pidFile -Force -ErrorAction SilentlyContinue
+    }
+
     # Get existing Chrome PIDs before opening
     $existingPids = @(Get-Process -Name "chrome" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Id)
 

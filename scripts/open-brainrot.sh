@@ -7,58 +7,71 @@ ACTION="${1:-open}"
 
 # URLs to open
 URLS=(
-    "https://www.tiktok.com"
-    "https://www.instagram.com/reels"
+    "https://www.tiktok.com/foryou"
+    "https://www.instagram.com/reels/"
     "https://www.youtube.com/shorts"
-    "https://www.x.com"
+    "https://x.com/"
 )
+
+# Domains to match when closing
+DOMAINS=("tiktok" "instagram" "youtube" "x.com")
+
+# Lock file to track if windows are open
+LOCK_FILE="/tmp/claude-rot.lock"
 
 # Get screen dimensions
-SCREEN_WIDTH=$(osascript -e 'tell application "Finder" to get bounds of window of desktop' | cut -d',' -f3 | xargs)
-SCREEN_HEIGHT=$(osascript -e 'tell application "Finder" to get bounds of window of desktop' | cut -d',' -f4 | xargs)
+SCREEN_WIDTH=$(osascript -e 'tell application "Finder" to get bounds of window of desktop' | cut -d',' -f3 | tr -d ' ')
+SCREEN_HEIGHT=$(osascript -e 'tell application "Finder" to get bounds of window of desktop' | cut -d',' -f4 | tr -d ' ')
 
-# Calculate window size (4 quarters)
-HALF_WIDTH=$((SCREEN_WIDTH / 2))
-HALF_HEIGHT=$((SCREEN_HEIGHT / 2))
-
-# Window positions: [x, y] for each quadrant
-POSITIONS=(
-    "0,0"                           # Top-left
-    "$HALF_WIDTH,0"                 # Top-right
-    "0,$HALF_HEIGHT"                # Bottom-left
-    "$HALF_WIDTH,$HALF_HEIGHT"      # Bottom-right
-)
+# Calculate column width (1/4 of screen)
+COLUMN_WIDTH=$((SCREEN_WIDTH / 4))
 
 open_windows() {
-    for i in "${!URLS[@]}"; do
-        URL="${URLS[$i]}"
-        POS="${POSITIONS[$i]}"
-        X=$(echo "$POS" | cut -d',' -f1)
-        Y=$(echo "$POS" | cut -d',' -f2)
+    # Skip if windows are already open
+    if [ -f "$LOCK_FILE" ]; then
+        # Check if Chrome still has our windows open
+        for domain in "${DOMAINS[@]}"; do
+            if osascript -e "tell application \"Google Chrome\" to get URL of active tab of every window" 2>/dev/null | grep -q "$domain"; then
+                # Windows still open, skip
+                return
+            fi
+        done
+        # Windows are gone, remove stale lock
+        rm -f "$LOCK_FILE"
+    fi
 
-        osascript <<EOF
+    # Create windows
+    osascript <<EOF
 tell application "Google Chrome"
+    repeat with i from 0 to 3
+        set url_to_open to item (i + 1) of {"${URLS[0]}", "${URLS[1]}", "${URLS[2]}", "${URLS[3]}"}
+        set x_pos to $COLUMN_WIDTH * i
+
+        make new window with properties {bounds:{x_pos, 0, x_pos + $COLUMN_WIDTH, $SCREEN_HEIGHT}}
+        set URL of active tab of front window to url_to_open
+    end repeat
+
     activate
-    set newWindow to make new window
-    set URL of active tab of newWindow to "$URL"
-    set bounds of newWindow to {$X, $Y, $((X + HALF_WIDTH)), $((Y + HALF_HEIGHT))}
 end tell
 EOF
-    done
+
+    # Create lock file
+    touch "$LOCK_FILE"
 }
 
 close_windows() {
-    for URL in "${URLS[@]}"; do
-        # Extract domain for matching
-        DOMAIN=$(echo "$URL" | sed 's|https://www\.||' | sed 's|/.*||')
+    # Remove lock file
+    rm -f "$LOCK_FILE"
 
+    # Close windows matching our domains
+    for domain in "${DOMAINS[@]}"; do
         osascript <<EOF
 tell application "Google Chrome"
     set windowList to every window
     repeat with w in windowList
         set tabList to every tab of w
         repeat with t in tabList
-            if URL of t contains "$DOMAIN" then
+            if URL of t contains "$domain" then
                 close w
                 exit repeat
             end if
