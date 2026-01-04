@@ -23,8 +23,9 @@ LOCK_FILE="/tmp/claude-rot.lock"
 SCREEN_WIDTH=$(osascript -e 'tell application "Finder" to get bounds of window of desktop' | cut -d',' -f3 | tr -d ' ')
 SCREEN_HEIGHT=$(osascript -e 'tell application "Finder" to get bounds of window of desktop' | cut -d',' -f4 | tr -d ' ')
 
-# Calculate column width (1/4 of screen)
-COLUMN_WIDTH=$((SCREEN_WIDTH / 4))
+# Calculate column width based on number of URLs
+URL_COUNT=${#URLS[@]}
+COLUMN_WIDTH=$((SCREEN_WIDTH / URL_COUNT))
 
 open_windows() {
     # Skip if windows are already open
@@ -41,19 +42,18 @@ open_windows() {
     fi
 
     # Create windows
-    osascript <<EOF
+    for i in "${!URLS[@]}"; do
+        url="${URLS[$i]}"
+        x_pos=$((COLUMN_WIDTH * i))
+
+        osascript <<EOF
 tell application "Google Chrome"
-    repeat with i from 0 to 3
-        set url_to_open to item (i + 1) of {"${URLS[0]}", "${URLS[1]}", "${URLS[2]}", "${URLS[3]}"}
-        set x_pos to $COLUMN_WIDTH * i
-
-        make new window with properties {bounds:{x_pos, 0, x_pos + $COLUMN_WIDTH, $SCREEN_HEIGHT}}
-        set URL of active tab of front window to url_to_open
-    end repeat
-
+    make new window with properties {bounds:{$x_pos, 0, $((x_pos + COLUMN_WIDTH)), $SCREEN_HEIGHT}}
+    set URL of active tab of front window to "$url"
     activate
 end tell
 EOF
+    done
 
     # Create lock file
     touch "$LOCK_FILE"
