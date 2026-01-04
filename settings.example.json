@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Edit|Write|Read|Glob|Grep|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "SCRIPT_PATH_HERE open"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|Edit|Write|Read|Glob|Grep|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "SCRIPT_PATH_HERE close"
+          }
+        ]
+      }
+    ]
+  }
+}
